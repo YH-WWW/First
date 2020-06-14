@@ -1,16 +1,16 @@
 //
 //  main.m
-//  数据结构实训程序
+//  ExamSystem
 //
-//  Created by kendrick Lamar on 2020/3/5.
+//  Created by kendrick Lamar on 2020/6/12.
 //  Copyright © 2020 kendrick Lamar. All rights reserved.
 //
-#import <Foundation/Foundation.h>
-#include<stdio.h>
+
+#include <stdio.h>
 #include<stdlib.h>
 #include<time.h>
 #include<regex.h>
-
+#include<pthread.h>
 
 //结构体创建
 typedef struct
@@ -107,7 +107,7 @@ void add_question(List* L){
         add_question(L);
     }
     if(keepgoing == 'N'){
-        menu(L);
+        menu_Teacher(L);
     }
 }
 
@@ -161,8 +161,6 @@ int response(List* L){
     total_ques = length(L);
     
     readfile(L, total_ques);
-    
-    sleep(2);
     int i = 0;
     while(i < num){
         
@@ -193,7 +191,7 @@ int response(List* L){
             }
             else{
                 printf("错误！\t 正确答案为: %c\n", L->List[m].answer);
-    
+                
                 FILE* secReadf;
                 secReadf = fopen("/Users/kendricklamar/Desktop/单项选择题标准化考试系统/record.txt","a+");
                 if(secReadf == NULL){
@@ -222,7 +220,7 @@ int response(List* L){
     printf("--------------\n");
     printf("分数:%d\n",count);
     return 0;
-
+    
 }
 void record(){
     char c;
@@ -254,23 +252,6 @@ void showAll(List* L){
     fclose(fp);
 }//输出所有题目
 
-void back(List* L){
-    int i;
-    printf("\n--------------\n");
-    printf("～1.返回主菜单\n");
-    printf("～2.退出\n");
-    printf(">>");
-    scanf("%d", &i);
-    if(i == 1){
-        menu(L);
-    }
-    if(i == 2){
-        exit(0);
-    }
-    printf("error!");
-    back(L);
-    
-}
 void search(List* L){
     FILE* readf;
     int total_ques;
@@ -307,45 +288,152 @@ void search(List* L){
     fclose(readf);
 }
 
-int menu(List* L){
+void back(List* L, int num){
+    int i;
+    printf("\n--------------\n");
+    printf("～1.返回主菜单\n");
+    printf("～2.退出\n");
+    printf(">>");
+    scanf("%d", &i);
+    if(i == 1){
+        if(num == 1){
+            menu_Teacher(L, num);
+        }else if(num == 2){
+            menu_Student(L, num);
+        }
+    }
+    if(i == 2){
+        exit(0);
+    }
+    printf("error!");
+    back(L, num);
+    
+}
+int menu_Student(List* L, int num){
     int order_num;
     
     printf("******************************************\n");
-    printf("*              1.录入试题库                *\n");
-    printf("*              2.答题                     *\n");
-    printf("*              3.打印题库所有题目           *\n");
-    printf("*              4.打印错题                  *\n");
-    printf("*              5.搜索题目                  *\n");
-    printf("*              6.退出                     *\n");
+    printf("*              1.答题                     *\n");
+    printf("*              2.打印错题                  *\n");
+    printf("*              3.搜索题目                  *\n");
+    printf("*              4.退出                     *\n");
     printf("******************************************\n");
     printf("请输入序号:");
     scanf("%d", &order_num);
     
     switch(order_num){
         case 1:
-            add_question(L);
-        case 2:
             response(L);
-            back(L);
-        case 3:
-            sleep(1);
-            showAll(L);
-            back(L);
-        case 4:
+            back(L, num);
+        case 2:
             record();
-            back(L);
-        case 5:
+            back(L, num);
+        case 3:
             search(L);
-            back(L);
-        case 6:
-            exit(1);
+            back(L, num);
+        case 4:
+            exit(0);
         default:
             printf("无效序号,请重新输入!\n");
-            menu(L);
+            menu_Student(L,num);
     }
     return 1;
 }
+int menu_Teacher(List* L, int num){
+    int order_num;
+    
+    printf("******************************************\n");
+    printf("*              1.录入试题库                *\n");
+    printf("*              2.打印题库所有题目           *\n");
+    printf("*              3.搜索题目                  *\n");
+    printf("*              4.退出                     *\n");
+    printf("******************************************\n");
+    printf("请输入序号:");
+    scanf("%d", &order_num);
+    switch(order_num){
+        case 1:
+            add_question(L);
+        case 2:
+            showAll(L);
+            back(L, num);
+        case 3:
+            search(L);
+            back(L, num);
+        case 4:
+            exit(0);
+        default:
+            printf("无效序号,请重新输入!\n");
+            menu_Teacher(L,num);
+    }
+    return 1;
+}
+void login_T(List* L, int num){
+    char pattern1[20] = "^[a-z]{3}[0-9]{7}$";
+    char pattern2[20] = "^[0-9]{10}$";
+    regex_t reg1;
+    regex_t reg2;
+    regmatch_t pmatch[2];
+    regcomp(&reg1, pattern1, REG_EXTENDED);
+    regcomp(&reg2, pattern2, REG_EXTENDED);
+    char teacherId[10],password[10];
+    printf("请输入您的教师号:");
+    printf(">>");
+    scanf("%s", teacherId);
+    int status1 = regexec(&reg1, teacherId, 10, pmatch, 0);
+    printf("请输入密码:");
+    printf(">>");
+    scanf("%s", password);
+    int status2 = regexec(&reg2, password, 10, pmatch, 0);
+    if(status1 == 0 && status2 == 0){
+        menu_Teacher(L,num);
+    }else{
+        if(status1 != 0 && status2 != 0){
+            printf("教师号和密码都不正确\n");
+        }else if(status1 != 0){
+            printf("教师号不正确\n");
+        }else if(status2 != 0){
+            printf("密码不正确\n");
+        }
+        login_T(L,num);
+        regfree(&reg1);
+        regfree(&reg2);
+    }
+}
 
+
+void login_S(List* L, int num){
+    char pattern1[20] = "^[a-z]{3}[0-9]{7}$";
+    char pattern2[20] = "^[0-9]{10}$";
+    regex_t reg1;
+    regex_t reg2;
+    regmatch_t pmatch[20];
+    regcomp(&reg1, pattern1, REG_EXTENDED);
+    regcomp(&reg2, pattern2, REG_EXTENDED);
+    char studentId[10];
+    char password[10];
+    printf("请输入您的学生号:");
+    printf(">>");
+    scanf("%s", studentId);
+    int status1 = regexec(&reg1, studentId, 10, pmatch, 0);
+    printf("请输入密码:");
+    printf(">>");
+    scanf("%s", password);
+    int status2 = regexec(&reg2, password, 10, pmatch, 0);
+    if(status1 == 0 && status2 == 0){
+        menu_Student(L,num);
+    }else{
+        if(status1 != 0 && status2 != 0){
+            printf("学生号和密码都不正确\n");
+        }else if(status1 != 0){
+            printf("学生号不正确\n");
+        }else if(status2 != 0){
+            printf("密码不正确\n");
+        }
+        login_S(L, num);
+    }
+    regfree(&reg1);
+    regfree(&reg2);
+}
 //保存题目
 int savefile(List* L){
     FILE *fp;
@@ -381,13 +469,57 @@ int readfile(List* L, int total_ques){
     return 1;
 }
 
+struct ARGS
+{
+    List* L;
+};
 
+void* peocess1(void* args){
+    int num = 1;
+    struct ARGS *arg = (struct ARGS*)args;
+    List *list = arg->L;
+    login_T(list, num);
+    
+    return NULL;
+}
+void* peocess2(void* args){
+    int num = 2;
+    struct ARGS *arg = (struct ARGS*)args;
+    List *list = arg->L;
+    login_S(list, num);
+    
+    return NULL;
+}
+pthread_t thread1;
+pthread_t thread2;
 int main(void){
     List bb, *L = &bb;
     initList(L,1);
     printf("欢迎进入试题系统！\n");
-    menu(L);
+    printf("******************************************\n");
+    printf("*              您的身份：                  *\n");
+    printf("*              1.老师。                   *\n");
+    printf("*              2.学生。                   *\n");
+    printf("******************************************\n");
+    printf(">>");
+    int choice;
+    scanf("%d",&choice);
+    switch(choice){
+        case 1:
+            pthread_create(&thread1, NULL, peocess1, &L);
+            pthread_join(thread1, NULL);
+            break;
+        case 2:
+            pthread_create(&thread2, NULL, peocess2, &L);
+            pthread_join(thread2, NULL);
+            break;
+        default:
+            printf("无效序号,请重新输入!\n");
+            main();
+    }
 }
+
+
 
 
 
